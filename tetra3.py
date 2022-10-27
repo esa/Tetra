@@ -849,8 +849,11 @@ class Tetra3():
                     fov_diagonal_rad = fov * np.sqrt(width**2 + height**2) / width
                     nearby_star_vectors = self.star_table[
                             self._get_nearby_stars(image_center_vector, fov_diagonal_rad/2), 2:5]
+                    nearby_star_RA_DEC = self.star_table[
+                            self._get_nearby_stars(image_center_vector, fov_diagonal_rad/2), 0:2]
                     # Match the nearby star vectors to the proposed measured star vectors
                     match_tuples = []
+                    match_positions = []
                     for ind, measured_vec in enumerate(rotated_star_vectors):
                         within_match_radius = (np.dot(measured_vec.reshape((1, 3)),
                                                       nearby_star_vectors.transpose())
@@ -859,6 +862,8 @@ class Tetra3():
                             match_ind = within_match_radius.nonzero()[0][0]
                             match_tuples.append((all_star_vectors[ind],
                                                  nearby_star_vectors[match_ind]))
+                            match_positions.append((star_centroids[ind],
+                                                 nearby_star_RA_DEC[match_ind]))
                     # Statistical reasoning for probability that current match is incorrect:
                     num_extracted_stars = len(all_star_vectors)
                     num_nearby_catalog_stars = len(nearby_star_vectors)
@@ -900,12 +905,12 @@ class Tetra3():
                         self._logger.debug('RESID: %.2f' % residual + ' asec')
                         return {'RA': ra, 'Dec': dec, 'Roll': roll, 'FOV': np.rad2deg(fov),
                                 'RMSE': residual, 'Matches': len(match_tuples),
-                                'Prob': prob_mismatch, 'T_solve': t_solve, 'T_extract': t_extract}
+                                'Prob': prob_mismatch, 'T_solve': t_solve, 'T_extract': t_extract}, match_positions, rotation_matrix
         t_solve = (precision_timestamp() - t0_solve) * 1000
         self._logger.debug('FAIL: Did not find a match to the stars! It took '
                            + str(round(t_solve)) + ' ms.')
         return {'RA': None, 'Dec': None, 'Roll': None, 'FOV': None, 'RMSE': None, 'Matches': None,
-                'Prob': None, 'T_solve': t_solve, 'T_extract': t_extract}
+                'Prob': None, 'T_solve': t_solve, 'T_extract': t_extract}, None, None
 
     def _get_nearby_stars(self, vector, radius):
         """Get stars within radius radians of the vector."""
