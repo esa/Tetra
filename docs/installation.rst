@@ -5,7 +5,7 @@ Getting Python
 --------------
 tetra3 is written for Python 3.7+ (and therefore runs on almost any platform) and should work with
 most modern Python 3 installations. There are many ways to get Python on your system. Most easily,
-by going to `the python webiste<https://www.python.org/>`_ and selecting your platform. However,
+by going to `the python webiste <https://www.python.org/>`_ and selecting your platform. However,
 the preferred
 method is by `downloading Miniconda for Python 3+ 
 <https://docs.conda.io/en/latest/miniconda.html>`_. If you are on Windows you will be given the
@@ -84,17 +84,24 @@ a free book on Git, and introductory videos is a good place to start.
 
 Installing tetra3
 -----------------
-To install the requirements open a terminal/CMD window in the tetra3 directory and run::
+To install the package, open a terminal/CMD window in the tetra3 directory and run::
 
-    pip install -r requirements.txt
+    pip install .
     
-to install all requirements. Test that everything works by running an example::
+to install the dependencies and make the tetra3 module accessible from anywhere. Test that
+everything works by running an example::
 
     cd examples
     python test_tetra3.py
     
 which should print out the solutions for the included test images.
-    
+
+Alternatively, the package can be installed directly from GitHub using pip::
+
+    pip install git+https://github.com/esa/tetra3.git
+
+Doing it this way means you can skip the steps outlined in :ref:`Getting tetra3`.
+
 If problems arise
 -----------------
 Please get in touch by `filing an issue <https://github.com/esa/tetra3/issues>`_.
