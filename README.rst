@@ -15,7 +15,7 @@ approximate field of view of your camera.
 The software is available in the `tetra3 GitHub repository <https://github.com/esa/tetra3>`_.
 General instructions are available at the
 `tetra3 ReadTheDocs website <https://tetra3.readthedocs.io/en/latest/>`_. tetra3 is Free and Open
-Source Software released by the European Space Agency under the Apache License 2.0. See NOTICE.txt
+Source Software released by the European Space Agency under the Apache License 2.0. See LICENSE.txt
 in the repository for full licensing details.
 
 Performance will vary, but in general solutions will take 10 milliseconds (excluding time to extract
