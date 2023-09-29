@@ -8,6 +8,7 @@ with open("./requirements.txt", "r") as f:
 
 if __name__ == "__main__":
     setup(name="tetra3", packages=["tetra3"], package_dir={"tetra3": "."},
+          package_data={"": ["default_database.npz"]},
           description="A fast lost-in-space plate solver for star trackers.",
           long_description=readme, long_description_content_type="text/x-rst",
           url="https://github.com/esa/tetra3",
