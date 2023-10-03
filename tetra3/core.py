@@ -300,10 +300,6 @@ class Tetra3():
     def __init__(self, load_database='default_database', debug_folder=None):
         # Logger setup
         self._debug_folder = None
-        if debug_folder is None:
-            self.debug_folder = Path(__file__).parent / 'debug'
-        else:
-            self.debug_folder = debug_folder
         self._logger = logging.getLogger('tetra3.Tetra3')
         if not self._logger.hasHandlers():
             # Add new handlers to the logger if there are none
@@ -311,15 +307,17 @@ class Tetra3():
             # Console handler at INFO level
             ch = logging.StreamHandler()
             ch.setLevel(logging.INFO)
-            # File handler at DEBUG level
-            fh = logging.FileHandler(self.debug_folder / 'tetra3.txt')
-            fh.setLevel(logging.DEBUG)
             # Format and add
             formatter = logging.Formatter('%(asctime)s:%(name)s-%(levelname)s: %(message)s')
-            fh.setFormatter(formatter)
             ch.setFormatter(formatter)
-            self._logger.addHandler(fh)
             self._logger.addHandler(ch)
+            if debug_folder is not None:
+                self.debug_folder = debug_folder
+                # File handler at DEBUG level
+                fh = logging.FileHandler(self.debug_folder / 'tetra3.txt')
+                fh.setLevel(logging.DEBUG)
+                fh.setFormatter(formatter)
+                self._logger.addHandler(fh)
 
         self._logger.debug('Tetra3 Constructor called with load_database=' + str(load_database))
         self._star_table = None
