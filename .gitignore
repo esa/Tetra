@@ -6,7 +6,7 @@
 *__pycache__*
 
 # Debug logs
-/debug/*
+**/debug/*
 
 # Builds
 /build/*
@@ -21,4 +21,4 @@
 
 # Databases except the default
 *.npz
-!/default_database.npz
+!**/default_database.npz
