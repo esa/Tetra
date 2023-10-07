@@ -430,13 +430,13 @@ class Tetra3():
 
         Args:
             path (str or pathlib.Path): The file to load. If given a str, the file will be looked
-                for in the tetra3 directory. If given a pathlib.Path, this path will be used
+                for in the tetra3/data directory. If given a pathlib.Path, this path will be used
                 unmodified. The suffix .npz will be added.
         """
         self._logger.debug('Got load database with: ' + str(path))
         if isinstance(path, str):
             self._logger.debug('String given, append to tetra3 directory')
-            path = (Path(__file__).parent / path).with_suffix('.npz')
+            path = (Path(__file__).parent / 'data' / path).with_suffix('.npz')
         else:
             self._logger.debug('Not a string, use as path directly')
             path = Path(path).with_suffix('.npz')
@@ -490,14 +490,14 @@ class Tetra3():
 
         Args:
             path (str or pathlib.Path): The file to save to. If given a str, the file will be saved
-                in the tetra3 directory. If given a pathlib.Path, this path will be used
+                in the tetra3/data directory. If given a pathlib.Path, this path will be used
                 unmodified. The suffix .npz will be added.
         """
         assert self.has_database, 'No database'
         self._logger.debug('Got save database with: ' + str(path))
         if isinstance(path, str):
             self._logger.debug('String given, append to tetra3 directory')
-            path = (Path(__file__).parent / path).with_suffix('.npz')
+            path = (Path(__file__).parent / 'data' / path).with_suffix('.npz')
         else:
             self._logger.debug('Not a string, use as path directly')
             path = Path(path).with_suffix('.npz')

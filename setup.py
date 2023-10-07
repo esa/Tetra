@@ -9,9 +9,12 @@ with open("./requirements.txt", "r") as f:
 if __name__ == "__main__":
     setup(name="tetra3", version="0.1",
           description="A fast lost-in-space plate solver for star trackers.",
-          long_description=readme, long_description_content_type="text/x-rst",
+          long_description=readme,
+          long_description_content_type="text/x-rst",
           url="https://github.com/esa/tetra3",
           download_url="https://github.com/esa/tetra3/archive/refs/heads/master.zip",
-          packages=find_packages(), license="Apache-2.0",
-          package_data={"": ["default_database.npz"]}, install_requires=requirements,
+          packages=find_packages(),
+          license="Apache-2.0",
+          package_data={"": ["data/default_database.npz"]},
+          install_requires=requirements,
           project_urls={"docs": "https://tetra3.readthedocs.io/en/latest/"})
