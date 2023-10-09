@@ -15,6 +15,6 @@ if __name__ == "__main__":
           download_url="https://github.com/esa/tetra3/archive/refs/heads/master.zip",
           packages=find_packages(),
           license="Apache-2.0",
-          package_data={"": ["data/default_database.npz"]},
+          package_data={"": ["data/*"]},
           install_requires=requirements,
           project_urls={"docs": "https://tetra3.readthedocs.io/en/latest/"})
