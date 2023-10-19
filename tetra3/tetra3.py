@@ -808,7 +808,7 @@ class Tetra3():
                 within_pattern_separation = vector_kd_tree.query_ball_point(vector,
                     pattern_stars_separation)
                 occupied_for_pattern = np.any(keep_at_fov[within_pattern_separation])
-                # If there isn't a star to close, add this to the table and carry on
+                # If there isn't a star too close, add this to the table and carry on
                 # Add to both this FOV specifically and the general table.
                 if not occupied_for_pattern:
                     keep_for_patterns[star_ind] = True
@@ -825,7 +825,7 @@ class Tetra3():
             # Index conversion from pattern_star_table to main star_table
             pattern_index = np.nonzero(keep_at_fov)[0].tolist()
 
-            # Loop throgh all pattern stars
+            # Loop through all pattern stars
             for pattern[0] in range(pattern_star_table.shape[0]):
                 # Remove star from future consideration
                 available_stars[pattern[0]] = False
@@ -1675,7 +1675,7 @@ def get_centroids_from_image(image, sigma=2, image_th=None, crop=None, downsampl
 
         4. Calculate the image threshold if image_th is None. If image_th is defined this value
            will be used to threshold the image. The threshold is determined by calculating the
-           noise standard deviation with the metod selected as `sigma_mode` and then scaling it by
+           noise standard deviation with the method selected as `sigma_mode` and then scaling it by
            `sigma` (default 3). The available methods are:
 
            - 'local_median_abs': For each pixel, calculate the standard deviation as
