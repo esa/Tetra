@@ -4,6 +4,9 @@ hip_main.dat in the same directory as tetra3.py to run this example. You can dow
 https://cdsarc.u-strasbg.fr/ftp/cats/I/239/
 """
 
+import sys
+sys.path.append('..')
+
 import tetra3
 
 # Create instance without loading any database.

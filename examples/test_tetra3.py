@@ -2,6 +2,10 @@
 This example loads the tetra3 default database and solves for every image in the
 tetra3/examples/data directory.
 """
+
+import sys
+sys.path.append('..')
+
 from PIL import Image
 from pathlib import Path
 EXAMPLES_DIR = Path(__file__).parent
