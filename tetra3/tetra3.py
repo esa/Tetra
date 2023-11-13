@@ -648,8 +648,8 @@ class Tetra3():
                 max_fov/min_fov is less than sqrt(multiscale_step) a single scale database is built.
             epoch_proper_motion (string or float, optional): Determines the end year to which
                 stellar proper motions are propagated. If 'now' (default), the current year is used.
-                If 'none' or None, star positions are not propagated from the catalogue and this
-                allows star entries without proper motions defined to be used in the database.
+                If 'none' or None, star motions are not propagated and this allows catalogue entries
+                without proper motions to be used in the database.
         """
         self._logger.debug('Got generate pattern catalogue with input: '
                            + str((max_fov, min_fov, save_as, star_catalog, pattern_stars_per_fov,
@@ -676,10 +676,10 @@ class Tetra3():
             epoch_proper_motion = None
             self._logger.debug('Proper motions will not be considered')
         elif isinstance(epoch_proper_motion, Number):
-            self._logger.debug('Use proper motion number as is')
+            self._logger.debug('Use proper motion epoch as given')
         elif str(epoch_proper_motion).lower() == 'now':
             epoch_proper_motion = datetime.utcnow().year
-            self._logger.debug('Proper motion set to now: ' + str(epoch_proper_motion))
+            self._logger.debug('Proper motion epoch set to now: ' + str(epoch_proper_motion))
         else:
             raise ValueError('epoch_proper_motion value %s is forbidden' % epoch_proper_motion)
 
@@ -704,39 +704,44 @@ class Tetra3():
             header_length = reader.itemsize
             if num_entries > 0:
                 epoch_equinox = 1950
-                pm_origin = 1950  # this is an assumption, not specified
+                pm_origin = 1950  # this is an assumption, not specified in bsc5 docs
             else:
                 num_entries = -num_entries
                 epoch_equinox = 2000
-                pm_origin = 2000  # this is an assumption, not specified
+                pm_origin = 2000  # this is an assumption, not specified in bsc5 docs
             # Check that the catalogue version has the data we need
             stnum = entry[3]
             if stnum != 1:
-                self._logger.warning('Catalogue ' + str(star_catalog) +
-                                     ' has unexpected "stnum" header value: ' + stnum)
+                self._logger.warning('Catalogue %s has unexpected "stnum" header value: %s' %
+                                     (star_catalog, stnum))
             mprop = entry[4]
             if mprop != 1:
-                self._logger.warning('Catalogue ' + str(star_catalog) +
-                                     ' has unexpected "mprop" header value: ' + mprop)
+                self._logger.warning('Catalogue %s has unexpected "mprop" header value: %s' %
+                                     (star_catalog, mprop))
             nmag = entry[5]
             if nmag != 1:
-                self._logger.warning('Catalogue ' + str(star_catalog) +
-                                     ' has unexpected "nmag" header value: ' + nmag)
+                self._logger.warning('Catalogue %s has unexpected "nmag" header value: %s' %
+                                     (star_catalog, nmag))
             nbent = entry[6]
             if nbent != 32:
-                self._logger.warning('Catalogue ' + str(star_catalog) +
-                                     ' has unexpected "nbent" header value: ' + nbent)
+                self._logger.warning('Catalogue %s has unexpected "nbent" header value: %s' %
+                                     (star_catalog, nbent))
         elif star_catalog in ('hip_main', 'tyc_main'):
             num_entries = sum(1 for _ in open(catalog_file_full_pathname))
-            pm_origin = 1991.25
             epoch_equinox = 2000
+            pm_origin = 1991.25
 
-        self._logger.info('Loading catalogue ' + str(star_catalog) + ' with ' + str(num_entries) \
-             + ' star entries.')
+        self._logger.info('Loading catalogue %s with %s star entries.' %
+                          (star_catalog, num_entries))
 
         if epoch_proper_motion is None:
             # If pm propagation was disabled, set end date to origin
             epoch_proper_motion = pm_origin
+            self._logger.info('Using catalog RA/Dec %s epoch; not propagating proper motions from %s.' %
+                              (epoch_equinox, pm_origin))
+        else:
+            self._logger.info('Using catalog RA/Dec %s epoch; propagating proper motions from %s to %s.' %
+                              (epoch_equinox, pm_origin, epoch_proper_motion))
 
         # Preallocate star table:
         star_table = np.zeros((num_entries, 6), dtype=np.float32)
@@ -748,9 +753,6 @@ class Tetra3():
         else: #is tyc_main
             star_catID = np.zeros((num_entries, 3), dtype=np.uint16)
 
-        self._logger.info('Using catalog RA/Dec %s epoch; propagating proper motions from %s to %s.'
-            % (epoch_equinox, pm_origin, epoch_proper_motion))
-
         # Read magnitude, RA, and Dec from star catalog:
         if star_catalog == 'bsc5':
             bsc5_data_type = [('ID', np.float32), ('RA', np.float64),
@@ -761,37 +763,37 @@ class Tetra3():
                 reader = np.fromfile(star_catalog_file, dtype=bsc5_data_type, count=num_entries)
             for (i, entry) in enumerate(reader):
                 mag = entry[4]/100
-                if mag <= star_max_magnitude:
-                    # RA/Dec in radians at epoch proper motion start.
-                    alpha = float(entry[1])
-                    delta = float(entry[2])
-                    cos_delta = np.cos(delta)
+                if mag > star_max_magnitude:
+                    continue
+                # RA/Dec in radians at epoch proper motion start.
+                alpha = float(entry[1])
+                delta = float(entry[2])
+                cos_delta = np.cos(delta)
 
-                    # Pick up proper motion terms. See notes for hip_main and
-                    # tyc_main below.
-                    # Radians per year.
-                    mu_alpha_cos_delta = float(entry[5])
-                    mu_delta = float(entry[6])
+                # Pick up proper motion terms. See notes for hip_main and tyc_main below.
+                # Radians per year.
+                mu_alpha_cos_delta = float(entry[5])
+                mu_delta = float(entry[6])
 
-                    # See notes below.
-                    if cos_delta > 0.1:
-                        mu_alpha = mu_alpha_cos_delta / cos_delta
-                    else:
-                        mu_alpha = 0
-                        mu_delta = 0
+                # See notes below.
+                if cos_delta > 0.1:
+                    mu_alpha = mu_alpha_cos_delta / cos_delta
+                else:
+                    mu_alpha = 0
+                    mu_delta = 0
 
-                    ra  = alpha + mu_alpha * (epoch_proper_motion - epoch_equinox)
-                    dec = delta + mu_delta * (epoch_proper_motion - epoch_equinox)
-                    star_table[i,:] = ([ra, dec, 0, 0, 0, mag])
-                    star_catID[i] = np.uint16(entry[0])
+                ra  = alpha + mu_alpha * (epoch_proper_motion - pm_origin)
+                dec = delta + mu_delta * (epoch_proper_motion - pm_origin)
+                star_table[i,:] = ([ra, dec, 0, 0, 0, mag])
+                star_catID[i] = np.uint16(entry[0])
         elif star_catalog in ('hip_main', 'tyc_main'):
             # The Hipparcos and Tycho catalogs uses International Celestial
             # Reference System (ICRS) which is essentially J2000. See
             # https://cdsarc.u-strasbg.fr/ftp/cats/I/239/version_cd/docs/vol1/sect1_02.pdf
             # section 1.2.1 for details.
-            incomplete_entries = 0
             with open(catalog_file_full_pathname, 'r') as star_catalog_file:
                 reader = csv.reader(star_catalog_file, delimiter='|')
+                incomplete_entries = 0
                 for (i, entry) in enumerate(reader):
                     # Skip this entry if mag, ra, or dec are empty.
                     if entry[5].isspace() or entry[8].isspace() or entry[9].isspace():
@@ -803,7 +805,7 @@ class Tetra3():
                         incomplete_entries += 1
                         continue
                     mag = float(entry[5])
-                    if mag is None or mag > star_max_magnitude:
+                    if mag > star_max_magnitude:
                         continue
                     # RA/Dec in degrees at 1991.25 proper motion start.
                     alpha = float(entry[8])
@@ -1731,12 +1733,12 @@ class Tetra3():
 
                         self._logger.debug(solution_dict)
                         return solution_dict
-        
+
         # Failed to solve, get time and return None
         t_solve = (precision_timestamp() - t0_solve) * 1000
         self._logger.debug('FAIL: Did not find a match to the stars! It took '
                            + str(round(t_solve)) + ' ms.')
-        return {'RA': None, 'Dec': None, 'Roll': None, 'FOV': None,
+        return {'RA': None, 'Dec': None, 'Roll': None, 'FOV': None, 'distortion': None,
                 'RMSE': None, 'Matches': None, 'Prob': None, 'epoch_equinox': None,
                 'epoch_proper_motion': None, 'T_solve': t_solve}
 
