@@ -110,14 +110,19 @@ from PIL import Image, ImageDraw
 _MAGIC_RAND = 2654435761
 _supported_databases = ('bsc5', 'hip_main', 'tyc_main')
 
-def _insert_at_index(item, index, table):
+# Returns (int, bool) for the table index where the item was inserted and
+# whether a collision occurred.
+def _insert_at_index(item, hash_index, table):
     """Inserts to table with quadratic probing."""
-    max_ind = table.shape[0]
+    table_length = table.shape[0]
+    collision = False
     for c in itertools.count():
-        i = (index + c**2) % max_ind
+        i = (hash_index + c*c) % table_length
+        # if the current slot is empty, add the item
         if all(table[i, :] == 0):
             table[i, :] = item
-            return
+            return (i, collision)
+        collision = True
 
 def _get_table_index_from_hash(hash_index, table):
     """Gets from table with quadratic probing, returns list of all possibly matching indices."""
@@ -131,11 +136,18 @@ def _get_table_index_from_hash(hash_index, table):
             found.append(i)
 
 def _key_to_index(key, bin_factor, max_index):
-    """Get hash index for a given key."""
-    # Get key as a single integer
-    index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
-    # Randomise by magic constant and modulo to maximum index
-    return (index * _MAGIC_RAND) % max_index
+    """Get hash index for a given key (tuple of ordered binned edge ratios)."""
+    bin_factor = int(bin_factor)
+    max_index = int(max_index)
+    # Convert fingerprint components to a single large number. Python integer math is arbitrary
+    # precision, so no overflow concern.
+    power = 1
+    combined = 0
+    for binned_edge_ratio in key:
+        combined += int(binned_edge_ratio) * power
+        power *= bin_factor
+    # Randomise by magic constant and modulo to maximum index.
+    return (combined * _MAGIC_RAND) % max_index
 
 def _compute_vectors(centroids, size, fov):
     """Get unit vectors from star centroids (pinhole camera)."""
@@ -1063,16 +1075,10 @@ class Tetra3():
                 # use the radii to uniquely order the pattern, used for future matching
                 pattern = np.array(pattern)[np.argsort(pattern_radii)]
 
-            # use quadratic probing to find an open space in the pattern catalog to insert
-            for index in ((hash_index + offset ** 2) % catalog_length
-                          for offset in itertools.count()):
-                # if the current slot is empty, add the pattern
-                if not pattern_catalog[index][0]:
-                    pattern_catalog[index] = pattern
-                    if save_largest_edge:
-                        # Store as milliradian to better use float16 range
-                        pattern_largest_edge[index] = edge_angles_sorted[-1]*1000
-                    break
+            (index, unused_collision) = _insert_at_index(pattern, hash_index, pattern_catalog)
+            if save_largest_edge:
+                # Store as milliradian to better use float16 range
+                pattern_largest_edge[index] = edge_angles_sorted[-1]*1000
 
         self._logger.info('Finished generating database.')
         self._logger.info('Size of uncompressed star table: %i Bytes.' %star_table.nbytes)
@@ -1420,10 +1426,9 @@ class Tetra3():
             hash_code_list = np.unique(hash_code_list, axis=0)
 
             # Calculate hash index for each
-            hash_indices = np.sum(hash_code_list*p_bins**np.arange(pattlen), axis=1)
-            hash_indices = (hash_indices*_MAGIC_RAND) % self.pattern_catalog.shape[0]
+            hash_indices = list(_key_to_index(hc, p_bins, self.pattern_catalog.shape[0])
+                                for hc in hash_code_list)
             # iterate over hash code space
-            i = 1
             for hash_index in hash_indices:
                 hash_match_inds = _get_table_index_from_hash(hash_index, self.pattern_catalog)
                 if len(hash_match_inds) == 0:
